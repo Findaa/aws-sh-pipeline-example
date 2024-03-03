@@ -1,0 +1,12 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - sh script/prebuild.sh
+  build:
+    commands:
+      - sh script/build.sh
+  post_build:
+    commands:
+      - sh script/postbuild.sh

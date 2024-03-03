@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: akademia-gornoslaska
+  name: akademia-gornoslaska
+  namespace: NAMESPACE_SED
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: akademia-gornoslaska
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 50%
+      maxSurge: 2
+  template:
+    metadata:
+      labels:
+        app: akademia-gornoslaska
+    spec:
+      containers:
+        - image: AWS_SED.dkr.ecr.eu-central-1.amazonaws.com/akademia-gornoslaska:IMAGE_TAG_SED
+          imagePullPolicy: Always
+          name: akademia-gornoslaska
+          ports:
+            - containerPort: 8080
+          env:
+            - name: mongo_db
+              value: "MONGO_DB_SED"
+            - name: mongo_admin_db
+              value: "MONGO_ADMIN_DB_SED"
+            - name: mongo_user
+              value: "MONGO_USER_SED"
+            - name: mongo_host
+              value: "MONGO_HOST_SED"
+            - name: mongo_port
+              value: "MONGO_PORT_SED"
+            - name: mongo_password
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-secret
+                  key: mongo-password
+            - name: jwt_issuer_url
+              value: "JWT_ISSUER_URL_SED"
+            - name: oauth_auth_url
+              value: "OAUTH_AUTH_URL_SED"
+            - name: oauth_token_url
+              value: "OAUTH_TOKEN_URL_SED"
+            - name: oauth_client_id
+              valueFrom:
+                secretKeyRef:
+                  name: oauth-secret
+                  key: client-id
+            - name: oauth_client_secret
+              valueFrom:
+                secretKeyRef:
+                  name: oauth-secret
+                  key: client-secret
+          resources:
+            requests:
+              memory: "512Mi"
+            limits:
+              memory: "2Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: akademia-gornoslaska
+  namespace: NAMESPACE_SED
+spec:
+  ports:
+    - port: 80
+      targetPort: 8080
+      name: http
+  selector:
+    app: akademia-gornoslaska
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: NAMESPACE_SED
+  name: akademia-gornoslaska
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: akademia-gornoslaska
+                port:
+                  number: 80
